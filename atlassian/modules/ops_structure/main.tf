@@ -14,7 +14,7 @@ terraform {
 
 resource "time_sleep" "stagger" {
   count           = length(var.team_names)
-  # Use 30s per team to reduce risk of "422 Another request being processed" errors
+  # Stagger creation to reduce "Another request being processed" API errors.
   create_duration = "${count.index * 30}s"
 }
 
@@ -42,7 +42,6 @@ resource "atlassian-operations_team" "teams" {
       role       = "member"
     }
   ]
-
   depends_on = [time_sleep.stagger]
 }
 
