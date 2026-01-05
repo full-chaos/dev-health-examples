@@ -30,7 +30,7 @@ locals {
   sprints_flag      = var.enable_sprints ? "" : "--disable-sprints"
   transitions_flag  = var.enable_transitions ? "" : "--disable-transitions"
   comments_flag     = var.enable_comments ? "--enable-comments" : ""
-  incidents_flag    = var.enable_incidents ? "" : "--disable-incidents"
+  incidents_flag    = var.disable_incidents ? "--disable-incidents" : ""
 
   project_lead_id = var.project_lead_account_id != "" ? var.project_lead_account_id : data.atlassian-operations_user.admin.account_id
   team_member_ids = length(var.team_member_account_ids) > 0 ? var.team_member_account_ids : (var.enable_user_creation ? jira_user.generated[*].id : [])

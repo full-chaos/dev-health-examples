@@ -134,8 +134,8 @@ variable "enable_comments" {
   default     = false
 }
 
-variable "enable_incidents" {
+variable "disable_incidents" {
   type        = bool
-  description = "Create JSM incidents + postmortem follow-ups"
-  default     = true
+  description = "Disable JSM incidents + postmortem follow-ups"
+  default     = false
 }
