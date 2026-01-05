@@ -1,103 +1,228 @@
-# Narrative configuration for 24 months of activity
+seed_version: 1
+org_slug: dev-health-demo
+incident_project_key: SRE
+
+teams:
+  - id: Team-01
+    domain: Core
+    primary_project: CORE
+    shared_project: PLAT
+  - id: Team-02
+    domain: Platform
+    primary_project: PLAT
+    shared_project: CORE
+  - id: Team-03
+    domain: Data
+    primary_project: DATA
+    shared_project: INTG
+  - id: Team-04
+    domain: Infra
+    primary_project: INFR
+    shared_project: SRE
+  - id: Team-05
+    domain: Security
+    primary_project: SECU
+    shared_project: INFR
+  - id: Team-06
+    domain: Mobile
+    primary_project: MOBI
+    shared_project: WEBX
+  - id: Team-07
+    domain: Web
+    primary_project: WEBX
+    shared_project: MOBI
+  - id: Team-08
+    domain: Integrations
+    primary_project: INTG
+    shared_project: DATA
+  - id: Team-09
+    domain: Payments
+    primary_project: PAY
+    shared_project: CORE
+  - id: Team-10
+    domain: Reliability
+    primary_project: SRE
+    shared_project: INFR
 
 projects:
   - key: CORE
-    name: Core Services
-    team: Team-Core
+    name: Core
+    team_id: Team-01
   - key: PLAT
-    name: Platform Engineering
-    team: Team-Platform
+    name: Platform
+    team_id: Team-02
   - key: DATA
-    name: Data Pipeline
-    team: Team-Data
+    name: Data
+    team_id: Team-03
   - key: INFR
-    name: Infrastructure
-    team: Team-Infra
+    name: Infra
+    team_id: Team-04
   - key: SECU
     name: Security
-    team: Team-Security
+    team_id: Team-05
   - key: MOBI
-    name: Mobile App
-    team: Team-Mobile
+    name: Mobile
+    team_id: Team-06
   - key: WEBX
-    name: Web Experience
-    team: Team-Web
+    name: Web
+    team_id: Team-07
   - key: INTG
     name: Integrations
-    team: Team-Integrations
+    team_id: Team-08
   - key: PAY
     name: Payments
-    team: Team-Payments
+    team_id: Team-09
   - key: SRE
-    name: Site Reliability
-    team: Team-Reliability
+    name: Reliability
+    team_id: Team-10
+
+services:
+  - svc-a
+  - svc-b
+  - svc-c
+  - svc-d
+  - svc-e
+  - svc-f
+  - svc-g
+  - svc-h
+  - svc-i
+  - svc-j
+
+story_arcs:
+  - Launch
+  - Scale
+  - Reliability Crunch
+  - Recovery
+  - Roadmap Reset
 
 arcs:
   - name: Launch
     start_month: 0
     end_month: 5
-    description: "High feature rate, moderate bugs"
-    weights:
-      feature: 0.70
-      bug: 0.20
-      maintenance: 0.05
-      refactor: 0.00
+    monthly_volume_mean: 58
+    monthly_volume_std: 8
+    incident_rate: 0.03
+    issue_type_mix:
+      story: 0.62
+      task: 0.23
+      bug: 0.10
+      incident: 0.05
+    work_type_mix:
+      feature: 0.55
+      maintenance: 0.15
+      refactor: 0.10
       unplanned: 0.05
-    incident_probability: 0.02
-    
+      bug: 0.15
+    investment_mix:
+      product: 0.55
+      platform: 0.15
+      reliability: 0.10
+      security: 0.08
+      ops: 0.12
+    dwell_profile:
+      review_days_mean: 1.5
+      blocked_days_mean: 0.5
   - name: Scale
     start_month: 6
     end_month: 11
-    description: "Increased maintenance + integration work, rising cycle time"
-    weights:
-      feature: 0.50
-      bug: 0.20
-      maintenance: 0.20
-      refactor: 0.05
-      unplanned: 0.05
-    incident_probability: 0.05
-
+    monthly_volume_mean: 52
+    monthly_volume_std: 10
+    incident_rate: 0.05
+    issue_type_mix:
+      story: 0.55
+      task: 0.25
+      bug: 0.12
+      incident: 0.08
+    work_type_mix:
+      feature: 0.40
+      maintenance: 0.25
+      refactor: 0.10
+      unplanned: 0.10
+      bug: 0.15
+    investment_mix:
+      product: 0.40
+      platform: 0.25
+      reliability: 0.15
+      security: 0.08
+      ops: 0.12
+    dwell_profile:
+      review_days_mean: 2.5
+      blocked_days_mean: 1.0
   - name: Reliability Crunch
     start_month: 12
     end_month: 15
-    description: "Spike in incidents + unplanned work, more handoffs"
-    weights:
+    monthly_volume_mean: 62
+    monthly_volume_std: 12
+    incident_rate: 0.12
+    issue_type_mix:
+      story: 0.45
+      task: 0.22
+      bug: 0.18
+      incident: 0.15
+    work_type_mix:
       feature: 0.20
-      bug: 0.30
-      maintenance: 0.10
-      refactor: 0.00
-      unplanned: 0.40
-    incident_probability: 0.15 # 15% of tickets are incidents (or extra incidents added)
-
+      maintenance: 0.20
+      refactor: 0.10
+      unplanned: 0.25
+      bug: 0.25
+    investment_mix:
+      product: 0.25
+      platform: 0.20
+      reliability: 0.30
+      security: 0.10
+      ops: 0.15
+    dwell_profile:
+      review_days_mean: 5.0
+      blocked_days_mean: 3.0
   - name: Recovery
     start_month: 16
     end_month: 19
-    description: "Refactor investment spike, incidents fall"
-    weights:
-      feature: 0.30
-      bug: 0.10
-      maintenance: 0.10
-      refactor: 0.40
+    monthly_volume_mean: 48
+    monthly_volume_std: 8
+    incident_rate: 0.04
+    issue_type_mix:
+      story: 0.48
+      task: 0.28
+      bug: 0.14
+      incident: 0.10
+    work_type_mix:
+      feature: 0.25
+      maintenance: 0.20
+      refactor: 0.30
       unplanned: 0.10
-    incident_probability: 0.05
-
+      bug: 0.15
+    investment_mix:
+      product: 0.30
+      platform: 0.25
+      reliability: 0.25
+      security: 0.08
+      ops: 0.12
+    dwell_profile:
+      review_days_mean: 2.0
+      blocked_days_mean: 1.0
   - name: Roadmap Reset
     start_month: 20
     end_month: 23
-    description: "Balanced mix, improved throughput"
-    weights:
-      feature: 0.50
-      bug: 0.10
+    monthly_volume_mean: 50
+    monthly_volume_std: 7
+    incident_rate: 0.03
+    issue_type_mix:
+      story: 0.58
+      task: 0.24
+      bug: 0.12
+      incident: 0.06
+    work_type_mix:
+      feature: 0.40
       maintenance: 0.20
-      refactor: 0.10
-      unplanned: 0.10
-    incident_probability: 0.02
-
-issue_types:
-  initiative: 
-    yearly_per_project: 2
-  epic:
-    quarterly_per_project: 3
-  
-  # Distribution of standard work items (Initiatives/Epics are containers)
-  # Ratios are handled by Arc weights
+      refactor: 0.20
+      unplanned: 0.08
+      bug: 0.12
+    investment_mix:
+      product: 0.40
+      platform: 0.20
+      reliability: 0.18
+      security: 0.10
+      ops: 0.12
+    dwell_profile:
+      review_days_mean: 2.0
+      blocked_days_mean: 0.8
