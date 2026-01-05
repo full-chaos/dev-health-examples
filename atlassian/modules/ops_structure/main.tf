@@ -61,8 +61,8 @@ resource "atlassian-operations_schedule_rotation" "rotation" {
   schedule_id = atlassian-operations_schedule.oncall[count.index].id
   name        = "Weekly Rotation"
   type        = "weekly"
-  # Use current timestamp as start date instead of hardcoded past date
-  start_date  = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timestamp())
+  # Use beginning of current year to avoid resource churn while not using hardcoded past dates
+  start_date  = "${formatdate("YYYY", timestamp())}-01-01T00:00:00Z"
   length      = 1
 
   participants = length(var.user_ids) > 0 ? [

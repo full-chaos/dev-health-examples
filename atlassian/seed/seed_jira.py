@@ -858,7 +858,9 @@ if __name__ == "__main__":
     args = parse_args()
     
     # Read token from environment variable to avoid exposing it in process listings
-    args.token = os.environ.get("JIRA_TOKEN", "")
+    args.token = os.environ.get("JIRA_TOKEN")
+    if not args.token:
+        raise ValueError("JIRA_TOKEN environment variable is required")
 
     args.enable_sprints = not args.disable_sprints
     args.enable_transitions = not args.disable_transitions
