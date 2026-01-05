@@ -65,7 +65,7 @@ variable "team_member_account_ids" {
 variable "generated_user_count" {
   type        = number
   description = "Number of synthetic users to generate"
-  default     = 0
+  default     = 5
 }
 
 variable "generated_user_domain" {
@@ -83,7 +83,7 @@ variable "enable_user_creation" {
 variable "enable_schedules" {
   type        = bool
   description = "Enable Ops schedules/rotations"
-  default     = true
+  default     = false
 }
 
 variable "schedule_timezone" {
@@ -95,7 +95,7 @@ variable "schedule_timezone" {
 variable "enable_issue_creation" {
   type        = bool
   description = "Toggle to create Jira issues (false = dry-run with manifest only)"
-  default     = true
+  default     = false
 }
 
 variable "seed_string" {

@@ -60,13 +60,19 @@ resource "null_resource" "seed" {
 
   triggers = {
     story_map_hash = filesha256("${path.module}/seed/story_map.yaml")
-    seed_string    = var.seed_string
+    script_hash    = filesha256("${path.module}/seed/seed_jira.py")
+    seed_hash      = sha256(var.seed_string)
     batch_size     = var.batch_size
     dry_run        = tostring(var.enable_issue_creation)
   }
 
   provisioner "local-exec" {
     command = join(" ", compact([
+      # Install Python dependencies
+      "pip3 install -q PyYAML requests &&",
+      # Create output directory
+      "mkdir -p ${path.module}/out &&",
+      # Run seeder
       "python3",
       "${path.module}/seed/seed_jira.py",
       "--url", var.jira_url,

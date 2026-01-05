@@ -14,13 +14,14 @@ terraform {
 
 resource "time_sleep" "stagger" {
   count           = length(var.team_names)
-  create_duration = "${count.index * 20}s"
+  # Use 30s per team to reduce risk of "422 Another request being processed" errors
+  create_duration = "${count.index * 30}s"
 }
 
 resource "random_shuffle" "team_members" {
   count        = length(var.team_names)
   input        = var.user_ids
-  result_count = length(var.user_ids) > 0 ? min(8, length(var.user_ids)) : 0
+  result_count = length(var.user_ids) > 0 ? min(2, length(var.user_ids)) : 0
 }
 
 resource "atlassian-operations_team" "teams" {
