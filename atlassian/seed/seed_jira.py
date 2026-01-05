@@ -22,6 +22,7 @@ class JiraSeeder:
         output_path,
         assignees=None,
         dry_run=False,
+        batch_size=50,
     ):
         self.url = url.rstrip("/")
         self.user = user
@@ -29,6 +30,7 @@ class JiraSeeder:
         self.output_path = output_path
         self.assignees = assignees or []
         self.dry_run = dry_run
+        self.batch_size = batch_size
 
         with open(story_map_path, "r") as f:
             self.story_map = yaml.safe_load(f)
@@ -45,6 +47,18 @@ class JiraSeeder:
 
     def log(self, msg):
         print(f"[Seeder] {msg}")
+
+    def adf_text(self, text):
+        return {
+            "type": "doc",
+            "version": 1,
+            "content": [
+                {
+                    "type": "paragraph",
+                    "content": [{"type": "text", "text": text}],
+                }
+            ],
+        }
 
     def api_request(self, method, endpoint, data=None):
         if MOCK_MODE:
@@ -111,6 +125,15 @@ class JiraSeeder:
         # This script focuses on content generation.
         self.stats["projects"][key] = {"total": 0, "by_type": {}}
 
+    def create_issues_batch(self, issue_updates):
+        if self.dry_run or not issue_updates:
+            return
+
+        payload = {"issueUpdates": issue_updates}
+        response = self.api_request("POST", "/rest/api/3/issue/bulk", payload)
+        if response is None:
+            self.log(f"Bulk issue creation failed for batch size {len(issue_updates)}")
+
     def generate_issue(self, project_key, issue_type, summary, created_dt, fields=None):
         f = fields or {}
 
@@ -129,13 +152,13 @@ class JiraSeeder:
             }
         }
 
-        if not self.dry_run:
-            self.api_request("POST", "/rest/api/3/issue", payload)
+        issue_payload = payload
         self.stats["total_issues"] += 1
         self.stats["projects"][project_key]["total"] += 1
 
         type_cnt = self.stats["projects"][project_key]["by_type"].get(issue_type, 0)
         self.stats["projects"][project_key]["by_type"][issue_type] = type_cnt + 1
+        return issue_payload
 
     def run(self):
         self.log("Starting generation...")
@@ -149,6 +172,8 @@ class JiraSeeder:
 
         for project in self.story_map["projects"]:
             self.create_project(project["key"], project["name"], project["team"])
+
+        batch = []
 
         # Iterate months
         for month in range(24):
@@ -195,7 +220,7 @@ class JiraSeeder:
 
                     summary = f"Generated {category} work for {project['key']} - {random.randint(1000, 9999)}"
 
-                    self.generate_issue(
+                    issue_payload = self.generate_issue(
                         project["key"],
                         issue_type,
                         summary,
@@ -205,9 +230,19 @@ class JiraSeeder:
                                 category,
                                 f"arc:{arc['name'].replace(' ', '-').lower()}",
                             ],
-                            "description": f"Auto-generated for arc {arc['name']}",
+                            "description": self.adf_text(
+                                f"Auto-generated for arc {arc['name']}"
+                            ),
                         },
                     )
+                    if issue_payload and not self.dry_run:
+                        batch.append(issue_payload)
+                        if len(batch) >= self.batch_size:
+                            self.create_issues_batch(batch)
+                            batch = []
+
+        if batch and not self.dry_run:
+            self.create_issues_batch(batch)
 
         # Write Manifest
         with open(self.output_path, "w") as f:
@@ -232,6 +267,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Generate stats/manifest without creating Jira issues",
     )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=50,
+        help="Number of issues per bulk create request",
+    )
 
     args = parser.parse_args()
 
@@ -251,5 +292,6 @@ if __name__ == "__main__":
         args.output,
         assignee_list,
         dry_run=args.dry_run,
+        batch_size=args.batch_size,
     )
     seeder.run()
