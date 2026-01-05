@@ -1,0 +1,29 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+*.tfvars.json
+*.tfplan
+*.log
+.terraform.lock.hcl
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+requirements.txt.log
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project Specific
+atlassian/manifest.json
+atlassian/demo.plan
+atlassian/tf.log
+*.json

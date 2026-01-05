@@ -1,0 +1,103 @@
+# Narrative configuration for 24 months of activity
+
+projects:
+  - key: CORE
+    name: Core Services
+    team: Team-Core
+  - key: PLAT
+    name: Platform Engineering
+    team: Team-Platform
+  - key: DATA
+    name: Data Pipeline
+    team: Team-Data
+  - key: INFR
+    name: Infrastructure
+    team: Team-Infra
+  - key: SECU
+    name: Security
+    team: Team-Security
+  - key: MOBI
+    name: Mobile App
+    team: Team-Mobile
+  - key: WEBX
+    name: Web Experience
+    team: Team-Web
+  - key: INTG
+    name: Integrations
+    team: Team-Integrations
+  - key: PAY
+    name: Payments
+    team: Team-Payments
+  - key: SRE
+    name: Site Reliability
+    team: Team-Reliability
+
+arcs:
+  - name: Launch
+    start_month: 0
+    end_month: 5
+    description: "High feature rate, moderate bugs"
+    weights:
+      feature: 0.70
+      bug: 0.20
+      maintenance: 0.05
+      refactor: 0.00
+      unplanned: 0.05
+    incident_probability: 0.02
+    
+  - name: Scale
+    start_month: 6
+    end_month: 11
+    description: "Increased maintenance + integration work, rising cycle time"
+    weights:
+      feature: 0.50
+      bug: 0.20
+      maintenance: 0.20
+      refactor: 0.05
+      unplanned: 0.05
+    incident_probability: 0.05
+
+  - name: Reliability Crunch
+    start_month: 12
+    end_month: 15
+    description: "Spike in incidents + unplanned work, more handoffs"
+    weights:
+      feature: 0.20
+      bug: 0.30
+      maintenance: 0.10
+      refactor: 0.00
+      unplanned: 0.40
+    incident_probability: 0.15 # 15% of tickets are incidents (or extra incidents added)
+
+  - name: Recovery
+    start_month: 16
+    end_month: 19
+    description: "Refactor investment spike, incidents fall"
+    weights:
+      feature: 0.30
+      bug: 0.10
+      maintenance: 0.10
+      refactor: 0.40
+      unplanned: 0.10
+    incident_probability: 0.05
+
+  - name: Roadmap Reset
+    start_month: 20
+    end_month: 23
+    description: "Balanced mix, improved throughput"
+    weights:
+      feature: 0.50
+      bug: 0.10
+      maintenance: 0.20
+      refactor: 0.10
+      unplanned: 0.10
+    incident_probability: 0.02
+
+issue_types:
+  initiative: 
+    yearly_per_project: 2
+  epic:
+    quarterly_per_project: 3
+  
+  # Distribution of standard work items (Initiatives/Epics are containers)
+  # Ratios are handled by Arc weights
