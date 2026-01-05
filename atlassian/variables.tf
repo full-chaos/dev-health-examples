@@ -67,3 +67,9 @@ variable "enable_schedules" {
   type        = bool
   default     = false
 }
+
+variable "enable_issue_creation" {
+  description = "Set to false to run the seeder in dry-run mode (no Jira issues created)"
+  type        = bool
+  default     = true
+}

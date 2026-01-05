@@ -17,6 +17,7 @@ This module provisions Atlassian resources (Teams, Projects) and populates them 
    jira_url   = "https://your-site.atlassian.net"
    jira_user  = "admin@example.com"
    jira_token = "ATATT3xFfGF0..." # Your API Token
+   # enable_issue_creation = false # Uncomment for dry-run (no Jira issues created)
    ```
 
 2. **Init & Apply**:

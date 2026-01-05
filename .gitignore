@@ -6,7 +6,8 @@
 *.tfvars.json
 *.tfplan
 *.log
-.terraform.lock.hcl
+.terraform.lock.**
+
 
 # Python
 __pycache__/
@@ -27,3 +28,4 @@ atlassian/manifest.json
 atlassian/demo.plan
 atlassian/tf.log
 *.json
+.terraform.tfstate.lock.**

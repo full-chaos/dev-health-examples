@@ -1,6 +1,7 @@
 locals {
   # Generate email list from the random_pet resource in users.tf
   generated_emails = [for p in random_pet.users : "${p.id}@${var.generated_user_domain}"]
+  dry_run_flag     = var.enable_issue_creation ? "" : " --dry-run"
 }
 
 module "jira_structure" {
@@ -44,7 +45,7 @@ resource "null_resource" "seeder" {
         --story story_map.yaml \
         --seed "${var.seed_random_state}" \
         --output ../manifest.json \
-        --assignees "${var.enable_user_creation ? join(",", local.generated_emails) : var.jira_user}"
+        --assignees "${var.enable_user_creation ? join(",", local.generated_emails) : var.jira_user}"${local.dry_run_flag}
     EOT
   }
 }

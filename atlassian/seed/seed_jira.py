@@ -13,13 +13,22 @@ MOCK_MODE = False
 
 class JiraSeeder:
     def __init__(
-        self, url, user, token, story_map_path, seed_str, output_path, assignees=None
+        self,
+        url,
+        user,
+        token,
+        story_map_path,
+        seed_str,
+        output_path,
+        assignees=None,
+        dry_run=False,
     ):
         self.url = url.rstrip("/")
         self.user = user
         self.token = token
         self.output_path = output_path
         self.assignees = assignees or []
+        self.dry_run = dry_run
 
         with open(story_map_path, "r") as f:
             self.story_map = yaml.safe_load(f)
@@ -120,7 +129,8 @@ class JiraSeeder:
             }
         }
 
-        # self.api_request("POST", "/rest/api/3/issue", payload)
+        if not self.dry_run:
+            self.api_request("POST", "/rest/api/3/issue", payload)
         self.stats["total_issues"] += 1
         self.stats["projects"][project_key]["total"] += 1
 
@@ -217,6 +227,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--assignees", required=False, help="Comma separated list of emails"
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Generate stats/manifest without creating Jira issues",
+    )
 
     args = parser.parse_args()
 
@@ -235,5 +250,6 @@ if __name__ == "__main__":
         args.seed,
         args.output,
         assignee_list,
+        dry_run=args.dry_run,
     )
     seeder.run()
