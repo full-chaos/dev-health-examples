@@ -17,16 +17,31 @@ variable "jira_token" {
 variable "atlassian_cloud_id" {
   type        = string
   description = "Atlassian cloud id for Ops provider"
+  
+  validation {
+    condition     = var.atlassian_cloud_id != ""
+    error_message = "The atlassian_cloud_id is required when using Ops features."
+  }
 }
 
 variable "atlassian_domain" {
   type        = string
   description = "Atlassian domain (your-domain.atlassian.net)"
+  
+  validation {
+    condition     = var.atlassian_domain != ""
+    error_message = "The atlassian_domain is required when using Ops features."
+  }
 }
 
 variable "atlassian_org_id" {
   type        = string
   description = "Atlassian org id for Ops team creation"
+  
+  validation {
+    condition     = var.atlassian_org_id != ""
+    error_message = "The atlassian_org_id is required when using Ops features."
+  }
 }
 
 variable "project_lead_account_id" {
@@ -96,9 +111,9 @@ variable "batch_size" {
 }
 
 variable "assignee_emails" {
-  type        = string
-  description = "Comma-separated emails to resolve for assignees"
-  default     = ""
+  type        = list(string)
+  description = "List of emails to resolve for assignees"
+  default     = []
 }
 
 variable "enable_sprints" {

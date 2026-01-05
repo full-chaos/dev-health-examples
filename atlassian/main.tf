@@ -26,7 +26,7 @@ locals {
   }
 
   dry_run_flag      = var.enable_issue_creation ? "" : "--dry-run"
-  assignee_flag     = var.assignee_emails != "" ? "--assignees '${var.assignee_emails}'" : ""
+  assignee_flag     = length(var.assignee_emails) > 0 ? "--assignees ${join(",", var.assignee_emails)}" : ""
   sprints_flag      = var.enable_sprints ? "" : "--disable-sprints"
   transitions_flag  = var.enable_transitions ? "" : "--disable-transitions"
   comments_flag     = var.enable_comments ? "--enable-comments" : ""
