@@ -89,11 +89,11 @@ services:
   - svc-j
 
 story_arcs:
-  - launch
-  - scale
-  - reliability-crunch
-  - recovery
-  - roadmap-reset
+  - Launch
+  - Scale
+  - Reliability Crunch
+  - Recovery
+  - Roadmap Reset
 
 arcs:
   - name: Launch

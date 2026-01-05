@@ -2,6 +2,7 @@ import argparse
 import datetime
 import hashlib
 import json
+import os
 import random
 import time
 from collections import defaultdict
@@ -10,6 +11,14 @@ import yaml
 
 
 class JiraClient:
+    """
+    A wrapper for Jira Cloud REST API interactions.
+    
+    Note on dry_run behavior:
+    - When dry_run=True, write operations (POST, PUT) return stubbed responses.
+    - Read operations (GET) still execute to validate connectivity and fetch metadata
+      like issue types, boards, and transitions.
+    """
     def __init__(self, url, user, token, dry_run=False):
         self.url = url.rstrip("/")
         self.user = user
@@ -39,6 +48,7 @@ class JiraClient:
                     params=params,
                     headers=headers,
                     auth=HTTPBasicAuth(self.user, self.token),
+                    # Timeout increased from 30s to 40s to accommodate slower Jira Cloud API responses
                     timeout=40,
                 )
                 if resp.status_code in [200, 201, 204]:
@@ -499,6 +509,8 @@ class JiraSeeder:
             if issue_type in ["story", "task"] and shared_candidates and self.rng.random() < 0.10:
                 extra_team = self.rng.choice(shared_candidates)
 
+            # Calculate created_at using 30-day months (approximation for demo data)
+            # This creates some drift over 24 months but is acceptable for synthetic data
             created_at = self.start_date + datetime.timedelta(days=month_idx * 30 + self.rng.randint(0, 28))
             ext_seed = f"{project_key}-{month_idx}-{idx}-{work_type}-{issue_type}"
             external_id = stable_hash(ext_seed)
@@ -828,7 +840,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", required=True)
     parser.add_argument("--user", required=True)
-    parser.add_argument("--token", required=True)
+    # Token is read from JIRA_TOKEN environment variable for security
     parser.add_argument("--story", required=True)
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--seed", required=True)
@@ -844,6 +856,11 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
+    
+    # Read token from environment variable to avoid exposing it in process listings
+    args.token = os.environ.get("JIRA_TOKEN")
+    if not args.token:
+        raise ValueError("JIRA_TOKEN environment variable is required")
 
     args.enable_sprints = not args.disable_sprints
     args.enable_transitions = not args.disable_transitions

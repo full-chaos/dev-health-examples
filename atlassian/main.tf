@@ -26,11 +26,11 @@ locals {
   }
 
   dry_run_flag      = var.enable_issue_creation ? "" : "--dry-run"
-  assignee_flag     = var.assignee_emails != "" ? "--assignees '${var.assignee_emails}'" : ""
+  assignee_flag     = length(var.assignee_emails) > 0 ? "--assignees ${join(",", var.assignee_emails)}" : ""
   sprints_flag      = var.enable_sprints ? "" : "--disable-sprints"
   transitions_flag  = var.enable_transitions ? "" : "--disable-transitions"
   comments_flag     = var.enable_comments ? "--enable-comments" : ""
-  incidents_flag    = var.enable_incidents ? "" : "--disable-incidents"
+  incidents_flag    = var.disable_incidents ? "--disable-incidents" : ""
 
   project_lead_id = var.project_lead_account_id != "" ? var.project_lead_account_id : data.atlassian-operations_user.admin.account_id
   team_member_ids = length(var.team_member_account_ids) > 0 ? var.team_member_account_ids : (var.enable_user_creation ? jira_user.generated[*].id : [])
@@ -60,18 +60,23 @@ resource "null_resource" "seed" {
 
   triggers = {
     story_map_hash = filesha256("${path.module}/seed/story_map.yaml")
-    seed_string    = var.seed_string
+    script_hash    = filesha256("${path.module}/seed/seed_jira.py")
+    seed_hash      = sha256(var.seed_string)
     batch_size     = var.batch_size
     dry_run        = tostring(var.enable_issue_creation)
   }
 
   provisioner "local-exec" {
     command = join(" ", compact([
+      # Install Python dependencies
+      "pip3 install -q PyYAML requests &&",
+      # Create output directory
+      "mkdir -p ${path.module}/out &&",
+      # Run seeder
       "python3",
       "${path.module}/seed/seed_jira.py",
       "--url", var.jira_url,
       "--user", var.jira_user,
-      "--token", var.jira_token,
       "--story", "${path.module}/seed/story_map.yaml",
       "--manifest", "${path.module}/out/manifest.json",
       "--seed", var.seed_string,
@@ -83,5 +88,9 @@ resource "null_resource" "seed" {
       local.comments_flag,
       local.incidents_flag,
     ]))
+    
+    environment = {
+      JIRA_TOKEN = var.jira_token
+    }
   }
 }

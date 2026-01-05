@@ -14,13 +14,14 @@ terraform {
 
 resource "time_sleep" "stagger" {
   count           = length(var.team_names)
-  create_duration = "${count.index * 20}s"
+  # Use 30s per team to reduce risk of "422 Another request being processed" errors
+  create_duration = "${count.index * 30}s"
 }
 
 resource "random_shuffle" "team_members" {
   count        = length(var.team_names)
   input        = var.user_ids
-  result_count = length(var.user_ids) > 0 ? min(8, length(var.user_ids)) : 0
+  result_count = length(var.user_ids) > 0 ? min(2, length(var.user_ids)) : 0
 }
 
 resource "atlassian-operations_team" "teams" {
@@ -60,7 +61,8 @@ resource "atlassian-operations_schedule_rotation" "rotation" {
   schedule_id = atlassian-operations_schedule.oncall[count.index].id
   name        = "Weekly Rotation"
   type        = "weekly"
-  start_date  = "2024-01-01T00:00:00Z"
+  # Use beginning of current year to avoid resource churn while not using hardcoded past dates
+  start_date  = "${formatdate("YYYY", timestamp())}-01-01T00:00:00Z"
   length      = 1
 
   participants = length(var.user_ids) > 0 ? [
