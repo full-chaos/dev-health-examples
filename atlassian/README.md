@@ -16,6 +16,7 @@ This module provisions Atlassian structure (Jira projects, Ops teams/schedules) 
 - Jira Cloud + Jira Software
 - Atlassian Ops (JSM Ops/On-call) access for the same site
 - API token with project admin access
+- Python 3 with `pip3` (PyYAML and requests will be auto-installed by Terraform)
 
 ## Environment variables
 
@@ -36,10 +37,10 @@ Set the following via `terraform.tfvars` or environment variables:
 
 Optional toggles:
 
-- `enable_issue_creation` (default `true`)
+- `enable_issue_creation` (default `false` - set to `true` to create issues)
 - `enable_sprints` (default `true`)
 - `enable_transitions` (default `true`)
-- `enable_incidents` (default `true`)
+- `disable_incidents` (default `false` - set to `true` to skip incidents)
 - `enable_comments` (default `false`)
 
 ## Usage
@@ -54,7 +55,9 @@ To run in dry-run mode (manifest only):
 
 ```hcl
 # terraform.tfvars
-enable_issue_creation = false
+# enable_issue_creation defaults to false, so dry-run is the default behavior
+# To actually create issues, set:
+enable_issue_creation = true
 ```
 
 ## Reset / destroy

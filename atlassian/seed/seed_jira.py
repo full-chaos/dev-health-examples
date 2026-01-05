@@ -11,6 +11,14 @@ import yaml
 
 
 class JiraClient:
+    """
+    A wrapper for Jira Cloud REST API interactions.
+    
+    Note on dry_run behavior:
+    - When dry_run=True, write operations (POST, PUT) return stubbed responses.
+    - Read operations (GET) still execute to validate connectivity and fetch metadata
+      like issue types, boards, and transitions.
+    """
     def __init__(self, url, user, token, dry_run=False):
         self.url = url.rstrip("/")
         self.user = user
@@ -40,6 +48,7 @@ class JiraClient:
                     params=params,
                     headers=headers,
                     auth=HTTPBasicAuth(self.user, self.token),
+                    # Timeout increased from 30s to 40s to accommodate slower Jira Cloud API responses
                     timeout=40,
                 )
                 if resp.status_code in [200, 201, 204]:
@@ -500,6 +509,8 @@ class JiraSeeder:
             if issue_type in ["story", "task"] and shared_candidates and self.rng.random() < 0.10:
                 extra_team = self.rng.choice(shared_candidates)
 
+            # Calculate created_at using 30-day months (approximation for demo data)
+            # This creates some drift over 24 months but is acceptable for synthetic data
             created_at = self.start_date + datetime.timedelta(days=month_idx * 30 + self.rng.randint(0, 28))
             ext_seed = f"{project_key}-{month_idx}-{idx}-{work_type}-{issue_type}"
             external_id = stable_hash(ext_seed)
