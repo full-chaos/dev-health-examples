@@ -2,6 +2,7 @@ import argparse
 import datetime
 import hashlib
 import json
+import os
 import random
 import time
 from collections import defaultdict
@@ -828,7 +829,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", required=True)
     parser.add_argument("--user", required=True)
-    parser.add_argument("--token", required=True)
+    # Token is read from JIRA_TOKEN environment variable for security
     parser.add_argument("--story", required=True)
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--seed", required=True)
@@ -844,6 +845,9 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
+    
+    # Read token from environment variable to avoid exposing it in process listings
+    args.token = os.environ.get("JIRA_TOKEN", "")
 
     args.enable_sprints = not args.disable_sprints
     args.enable_transitions = not args.disable_transitions

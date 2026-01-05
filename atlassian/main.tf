@@ -71,7 +71,6 @@ resource "null_resource" "seed" {
       "${path.module}/seed/seed_jira.py",
       "--url", var.jira_url,
       "--user", var.jira_user,
-      "--token", var.jira_token,
       "--story", "${path.module}/seed/story_map.yaml",
       "--manifest", "${path.module}/out/manifest.json",
       "--seed", var.seed_string,
@@ -83,5 +82,9 @@ resource "null_resource" "seed" {
       local.comments_flag,
       local.incidents_flag,
     ]))
+    
+    environment = {
+      JIRA_TOKEN = var.jira_token
+    }
   }
 }
