@@ -1,75 +1,126 @@
 variable "jira_url" {
-  description = "Base URL for Jira instance (e.g., https://your-domain.atlassian.net)"
   type        = string
+  description = "Base URL for Jira Cloud, e.g. https://your-domain.atlassian.net"
 }
 
 variable "jira_user" {
-  description = "Email address for Jira authentication"
   type        = string
+  description = "Jira user email"
 }
 
 variable "jira_token" {
-  description = "API Token for Jira authentication"
   type        = string
+  description = "Jira API token"
   sensitive   = true
 }
 
 variable "atlassian_cloud_id" {
-  description = "The Cloud ID of the Atlassian site (required for atlassian-operations provider)"
   type        = string
-  default     = ""
+  description = "Atlassian cloud id for Ops provider"
 }
 
 variable "atlassian_domain" {
-  description = "The subdomain of the Atlassian site (e.g. 'chrisgeorge' for 'chrisgeorge.atlassian.net')"
   type        = string
-  default     = ""
+  description = "Atlassian domain (your-domain.atlassian.net)"
 }
 
 variable "atlassian_org_id" {
-  description = "The Organization ID (required for team creation in atlassian-operations)"
   type        = string
+  description = "Atlassian org id for Ops team creation"
+}
+
+variable "project_lead_account_id" {
+  type        = string
+  description = "Account ID used as Jira project lead"
   default     = ""
 }
 
-variable "seed_random_state" {
-  description = "String to seed the deterministic generator"
-  type        = string
-  default     = "full-chaos-dev-health"
+variable "enable_project_creation" {
+  type        = bool
+  description = "Enable Jira project creation (disable if projects already exist)"
+  default     = true
+}
+
+variable "team_member_account_ids" {
+  type        = list(string)
+  description = "Account IDs eligible for Ops team membership"
+  default     = []
 }
 
 variable "generated_user_count" {
-  description = "Number of random users to generate"
   type        = number
-  default     = 5
+  description = "Number of synthetic users to generate"
+  default     = 0
 }
 
 variable "generated_user_domain" {
-  description = "Domain for generated users email addresses"
   type        = string
+  description = "Email domain used for synthetic users"
   default     = "example.com"
 }
 
 variable "enable_user_creation" {
-  description = "Set to true to provision generated users in Jira (requires appropriate permissions/non-SSO)"
   type        = bool
+  description = "Enable Jira user creation"
   default     = false
-}
-
-variable "project_template_key" {
-  description = "The template key for the Jira projects"
-  type        = string
-  default     = "com.pyxis.greenhopper.jira:gh-simplified-agility-scrum"
 }
 
 variable "enable_schedules" {
-  description = "Set to true to provision OpsGenie/Atlassian Operations schedules and rotations"
   type        = bool
-  default     = false
+  description = "Enable Ops schedules/rotations"
+  default     = true
+}
+
+variable "schedule_timezone" {
+  type        = string
+  description = "Timezone for on-call schedules"
+  default     = "America/New_York"
 }
 
 variable "enable_issue_creation" {
-  description = "Set to false to run the seeder in dry-run mode (no Jira issues created)"
   type        = bool
+  description = "Toggle to create Jira issues (false = dry-run with manifest only)"
+  default     = true
+}
+
+variable "seed_string" {
+  type        = string
+  description = "Deterministic seed input"
+  default     = "dev-health-demo"
+}
+
+variable "batch_size" {
+  type        = number
+  description = "Bulk issue batch size"
+  default     = 50
+}
+
+variable "assignee_emails" {
+  type        = string
+  description = "Comma-separated emails to resolve for assignees"
+  default     = ""
+}
+
+variable "enable_sprints" {
+  type        = bool
+  description = "Create sprints/boards and assign issues when possible"
+  default     = true
+}
+
+variable "enable_transitions" {
+  type        = bool
+  description = "Attempt to transition issues through workflows"
+  default     = true
+}
+
+variable "enable_comments" {
+  type        = bool
+  description = "Create comments on a subset of issues"
+  default     = false
+}
+
+variable "enable_incidents" {
+  type        = bool
+  description = "Create JSM incidents + postmortem follow-ups"
   default     = true
 }

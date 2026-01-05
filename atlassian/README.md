@@ -1,51 +1,86 @@
-# Atlassian Data Seeder
+# Atlassian Demo Data Seeder
 
-This module provisions Atlassian resources (Teams, Projects) and populates them with realistic sample data for the Developer Health Platform.
+This module provisions Atlassian structure (Jira projects, Ops teams/schedules) and invokes a deterministic seeder to generate narrative-shaped demo data for Developer Health analytics.
 
-## Prerequisites
+## What this creates
 
-- Terraform >= 1.5
-- Python >= 3.9
-- An Atlassian Cloud site (Jira Software + Jira Service Management)
+- 10 Jira Software projects
+- 10 Ops teams with weekly on-call rotations
+- ~12k Jira issues across 24 months
+- Incidents + postmortem follow-ups (labeled and linked)
+- Sprint history and spillover (when Agile APIs are available)
+- `out/manifest.json` with distribution summaries
+
+## Requirements
+
+- Jira Cloud + Jira Software
+- Atlassian Ops (JSM Ops/On-call) access for the same site
+- API token with project admin access
+
+## Environment variables
+
+Set the following via `terraform.tfvars` or environment variables:
+
+- `jira_url` (e.g. `https://your-domain.atlassian.net`)
+- `jira_user` (email)
+- `jira_token`
+- `atlassian_cloud_id`
+- `atlassian_domain`
+- `atlassian_org_id`
+- `project_lead_account_id` (optional; defaults to current admin user)
+- `enable_project_creation` (optional; set to false if projects already exist)
+- `team_member_account_ids` (list; optional)
+- `generated_user_count` (optional)
+- `generated_user_domain` (optional)
+- `enable_user_creation` (optional)
+
+Optional toggles:
+
+- `enable_issue_creation` (default `true`)
+- `enable_sprints` (default `true`)
+- `enable_transitions` (default `true`)
+- `enable_incidents` (default `true`)
+- `enable_comments` (default `false`)
 
 ## Usage
 
-1. **Configure Variables**:
-   Create a `terraform.tfvars` file or use environment variables.
+```bash
+cd atlassian
+terraform init
+terraform apply
+```
 
-   ```hcl
-   jira_url   = "https://your-site.atlassian.net"
-   jira_user  = "admin@example.com"
-   jira_token = "ATATT3xFfGF0..." # Your API Token
-   # enable_issue_creation = false # Uncomment for dry-run (no Jira issues created)
-   ```
+To run in dry-run mode (manifest only):
 
-2. **Init & Apply**:
-   ```bash
-   cd infra/atlassian_seed
-   terraform init
-   terraform apply
-   ```
+```hcl
+# terraform.tfvars
+enable_issue_creation = false
+```
 
-3. **What happens**:
-   - Terraform creates a basic structure.
-   - The `seed_jira.py` script runs, authenticating to your Jira instance.
-   - ~12,000 issues are generated across 10 projects, following a 24-month narrative arc.
-   - A `manifest.json` is generated in `infra/atlassian_seed/manifest.json`.
+## Reset / destroy
 
-## Narrative Arcs
-
-The data follows 5 phases:
-1. **Launch**: Feature-heavy.
-2. **Scale**: Maintenance rises.
-3. **Reliability Crunch**: Incidents spike (Months 13-16).
-4. **Recovery**: Refactoring.
-5. **Roadmap Reset**: Balanced state.
-
-## Cleaning Up
-
-To remove generated configuration (Projects/Teams), run:
 ```bash
 terraform destroy
 ```
-*Note: The Python seeder does not delete issues on destroy. You must delete the projects manually or via bulk delete.*
+
+The seeder is idempotent for issues: it uses a deterministic external id stored as a label (`extid-<hash>`). Re-running `terraform apply` skips previously seeded issues.
+
+## Rate limits and retries
+
+The seeder retries failed API calls up to 3 times with a short sleep. If you hit rate limits, re-run `terraform apply` after a few minutes.
+
+## Permissions needed
+
+- Project admin for Jira project creation
+- Issue create + transition for Jira and JSM projects
+- Ops team and schedule management access
+
+## Notes on timestamps
+
+Jira Cloud does not allow backdating `created`/`resolved` without import permissions. This seeder stores simulated timestamps in the issue property `seed_meta` and in `out/manifest.json` for analytics.
+
+## Files
+
+- `seed/story_map.yaml` controls project/team mapping and arc distributions
+- `seed/seed_jira.py` contains the deterministic data generator
+- `out/manifest.json` is produced after seeding

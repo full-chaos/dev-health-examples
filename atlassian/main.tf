@@ -1,55 +1,87 @@
 locals {
-  # Generate email list from the random_pet resource in users.tf
-  generated_emails = [for p in random_pet.users : "${p.id}@${var.generated_user_domain}"]
-  dry_run_flag     = var.enable_issue_creation ? "" : " --dry-run"
+  team_names = [
+    "Team-01",
+    "Team-02",
+    "Team-03",
+    "Team-04",
+    "Team-05",
+    "Team-06",
+    "Team-07",
+    "Team-08",
+    "Team-09",
+    "Team-10",
+  ]
+
+  project_map = {
+    CORE = "Core"
+    PLAT = "Platform"
+    DATA = "Data"
+    INFR = "Infra"
+    SECU = "Security"
+    MOBI = "Mobile"
+    WEBX = "Web"
+    INTG = "Integrations"
+    PAY  = "Payments"
+    SRE  = "Reliability"
+  }
+
+  dry_run_flag      = var.enable_issue_creation ? "" : "--dry-run"
+  assignee_flag     = var.assignee_emails != "" ? "--assignees '${var.assignee_emails}'" : ""
+  sprints_flag      = var.enable_sprints ? "" : "--disable-sprints"
+  transitions_flag  = var.enable_transitions ? "" : "--disable-transitions"
+  comments_flag     = var.enable_comments ? "--enable-comments" : ""
+  incidents_flag    = var.enable_incidents ? "" : "--disable-incidents"
+
+  project_lead_id = var.project_lead_account_id != "" ? var.project_lead_account_id : data.atlassian-operations_user.admin.account_id
+  team_member_ids = length(var.team_member_account_ids) > 0 ? var.team_member_account_ids : (var.enable_user_creation ? jira_user.generated[*].id : [])
 }
 
 module "jira_structure" {
-  source                  = "./modules/jira_structure"
-  project_lead_account_id = data.atlassian-operations_user.admin.account_id
-  project_template_key    = var.project_template_key
+  source = "./modules/jira_structure"
+
+  project_lead_account_id = local.project_lead_id
+  project_map             = local.project_map
+  enable_project_creation = var.enable_project_creation
 }
 
 module "ops_structure" {
-  source          = "./modules/ops_structure"
-  # Use generated users if created, otherwise fallback to admin user to ensure at least one member
-  user_ids        = concat(
-    var.enable_user_creation ? jira_user.generated[*].id : [],
-    [data.atlassian-operations_user.admin.account_id]
-  )
-  organization_id  = var.atlassian_org_id
+  source = "./modules/ops_structure"
+
+  organization_id = var.atlassian_org_id
+  team_names      = local.team_names
+  user_ids        = local.team_member_ids
+  admin_user_id   = local.project_lead_id
   enable_schedules = var.enable_schedules
+  schedule_timezone = var.schedule_timezone
 }
 
-resource "null_resource" "seeder" {
-  triggers = {
-    seed_hash = var.seed_random_state
-    # Re-run if the script or map changes
-    script_hash = filesha256("${path.module}/seed/seed_jira.py")
-    map_hash    = filesha256("${path.module}/seed/story_map.yaml")
-  }
+resource "null_resource" "seed" {
+  depends_on = [module.jira_structure, module.ops_structure]
 
-  depends_on = [
-    module.jira_structure,
-    module.ops_structure
-  ]
+  triggers = {
+    story_map_hash = filesha256("${path.module}/seed/story_map.yaml")
+    seed_string    = var.seed_string
+    batch_size     = var.batch_size
+    dry_run        = tostring(var.enable_issue_creation)
+  }
 
   provisioner "local-exec" {
-    command = <<EOT
-      cd ${path.module}/seed
-      pip3 install -r requirements.txt
-      python3 seed_jira.py \
-        --url "${var.jira_url}" \
-        --user "${var.jira_user}" \
-        --token "${var.jira_token}" \
-        --story story_map.yaml \
-        --seed "${var.seed_random_state}" \
-        --output ../manifest.json \
-        --assignees "${var.enable_user_creation ? join(",", local.generated_emails) : var.jira_user}"${local.dry_run_flag}
-    EOT
+    command = join(" ", compact([
+      "python3",
+      "${path.module}/seed/seed_jira.py",
+      "--url", var.jira_url,
+      "--user", var.jira_user,
+      "--token", var.jira_token,
+      "--story", "${path.module}/seed/story_map.yaml",
+      "--manifest", "${path.module}/out/manifest.json",
+      "--seed", var.seed_string,
+      "--batch-size", tostring(var.batch_size),
+      local.assignee_flag,
+      local.dry_run_flag,
+      local.sprints_flag,
+      local.transitions_flag,
+      local.comments_flag,
+      local.incidents_flag,
+    ]))
   }
-}
-
-output "manifest_path" {
-  value = "${path.module}/manifest.json"
 }
