@@ -251,14 +251,20 @@ class JiraSeeder:
                 end = self.parse_iso_date(self.args.end_date, "end-date")
             else:
                 end = datetime.datetime.utcnow()
-            if end <= start:
-                raise ValueError("--end-date must be later than --start-date.")
+            if end < start:
+                raise ValueError(
+                    "--end-date must be later than or equal to --start-date "
+                    "(Terraform: provision_end_date >= provision_start_date)."
+                )
             total_days = (end - start).days
             month_count = max(1, int(round(total_days / 30.0)))
             return start, end, month_count
 
         if self.args.end_date:
-            raise ValueError("--start-date is required when --end-date is provided.")
+            raise ValueError(
+                "--start-date is required when --end-date is provided "
+                "(Terraform: provision_start_date is required when provision_end_date is set)."
+            )
 
         end = datetime.datetime.utcnow()
         start = end - datetime.timedelta(days=730)
@@ -269,7 +275,10 @@ class JiraSeeder:
         try:
             dt = datetime.datetime.fromisoformat(cleaned)
         except ValueError as exc:
-            raise ValueError(f"--{label} must be ISO-8601 (e.g. 2023-01-31).") from exc
+            raise ValueError(
+                f"--{label} must be ISO-8601 (e.g. 2023-01-31). "
+                f"(Terraform: provision_{label.replace('-', '_')} format is invalid.)"
+            ) from exc
         if dt.tzinfo:
             dt = dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
         return dt
@@ -520,7 +529,7 @@ class JiraSeeder:
     def generate_month_issues(self, project, month_idx, arc):
         project_key = project["key"]
         default_team_id = project["team_id"]
-        if self.args.monthly_issue_count is not None:
+        if self.args.monthly_issue_count is not None and self.args.monthly_issue_count > 0:
             base_count = clamp_int(self.args.monthly_issue_count, 1)
         else:
             base_count = clamp_int(self.rng.gauss(arc["monthly_volume_mean"], arc["monthly_volume_std"]), 20)
@@ -897,10 +906,16 @@ def parse_args():
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--seed", required=True)
     parser.add_argument("--assignees", default="")
-    parser.add_argument("--batch-size", type=int, default=50)
-    parser.add_argument("--start-date", default=None)
-    parser.add_argument("--end-date", default=None)
-    parser.add_argument("--monthly-issue-count", type=int, default=None)
+    parser.add_argument("--batch-size", "--batch_size", dest="batch_size", type=int, default=50)
+    parser.add_argument("--start-date", "--start_date", dest="start_date", default=None)
+    parser.add_argument("--end-date", "--end_date", dest="end_date", default=None)
+    parser.add_argument(
+        "--monthly-issue-count",
+        "--monthly_issue_count",
+        dest="monthly_issue_count",
+        type=int,
+        default=None,
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--disable-sprints", action="store_true")
     parser.add_argument("--disable-transitions", action="store_true")
