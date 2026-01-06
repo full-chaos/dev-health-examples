@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Jira seeder for generating synthetic demo data for Developer Health analytics."""
+
 import argparse
 import datetime
 import hashlib
@@ -202,7 +206,8 @@ class JiraSeeder:
         self.start_date, self.end_date, self.month_count = self.resolve_date_range()
         seed_input = f"{self.story.get('org_slug', 'org')}::{args.seed}"
         seed_hash = int(hashlib.sha256(seed_input.encode("utf-8")).hexdigest(), 16)
-        self.rng = random.Random(seed_hash)
+        # Using deterministic seeding intentionally for reproducible demo data generation
+        self.rng = random.Random(seed_hash)  # nosec B311
 
         self.client = JiraClient(args.url, args.user, args.token, dry_run=args.dry_run)
         self.issue_types = set(self.client.get_issue_types())
@@ -212,7 +217,7 @@ class JiraSeeder:
 
         self.manifest = {
             "meta": {
-                "generated_at": datetime.datetime.utcnow().isoformat() + "Z",
+                "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 "seed": args.seed,
                 "months": self.month_count,
             },
@@ -250,7 +255,7 @@ class JiraSeeder:
             if self.args.end_date:
                 end = self.parse_iso_date(self.args.end_date, "end-date")
             else:
-                end = datetime.datetime.utcnow()
+                end = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
             if end < start:
                 raise ValueError(
                     "--end-date must be later than or equal to --start-date "
@@ -266,7 +271,7 @@ class JiraSeeder:
                 "(Terraform: provision_start_date is required when provision_end_date is set)."
             )
 
-        end = datetime.datetime.utcnow()
+        end = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
         start = end - datetime.timedelta(days=730)
         return start, end, 24
 
@@ -681,7 +686,7 @@ class JiraSeeder:
                     continue
                 meta = issue_meta.get("_seed_meta", {})
                 labels = issue_meta.get("fields", {}).get("labels", [])
-                ext_label = next((l for l in labels if l.startswith("extid-")), None)
+                ext_label = next((lbl for lbl in labels if lbl.startswith("extid-")), None)
                 if ext_label:
                     self.issue_key_by_external_id[ext_label.replace("extid-", "")] = issue_key
                 self.client.set_issue_property(issue_key, "seed_meta", meta)

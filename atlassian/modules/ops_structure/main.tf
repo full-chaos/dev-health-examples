@@ -77,6 +77,3 @@ resource "atlassian-operations_schedule_rotation" "rotation" {
   ]
 }
 
-output "ops_team_ids" {
-  value = atlassian-operations_team.teams[*].id
-}
