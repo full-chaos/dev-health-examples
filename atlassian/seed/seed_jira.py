@@ -122,13 +122,23 @@ class JiraClient:
         }
         return self.api_request("POST", "/rest/api/3/issueLink", payload)
 
-    def create_board(self, name, project_key):
+    def create_filter(self, name, jql):
+        payload = {
+            "name": name,
+            "jql": jql,
+            "description": "Seeded filter for board",
+            "sharePermissions": [],
+        }
+        return self.api_request("POST", "/rest/api/3/filter", payload)
+
+    def create_board(self, name, project_key, filter_id=None):
         payload = {
             "name": name,
             "type": "scrum",
-            "filterId": None,
             "location": {"type": "project", "projectKeyOrId": project_key},
         }
+        if filter_id:
+            payload["filterId"] = filter_id
         return self.api_request("POST", "/rest/agile/1.0/board", payload)
 
     def get_boards(self, project_key):
@@ -886,7 +896,15 @@ class JiraSeeder:
                 board_id = board.get("id")
                 break
         if board_id is None:
-            created = self.client.create_board(f"{project_key} Scrum", project_key) or {}
+            filter_id = None
+            # Attempt to create a filter first, as some Jira instances require it
+            filter_name = f"Filter for {project_key} Scrum"
+            jql = f'project = "{project_key}" ORDER BY Rank ASC'
+            filter_resp = self.client.create_filter(filter_name, jql)
+            if filter_resp and "id" in filter_resp:
+                filter_id = int(filter_resp["id"])
+
+            created = self.client.create_board(f"{project_key} Scrum", project_key, filter_id=filter_id) or {}
             board_id = created.get("id")
         if not board_id:
             self.log(f"Skipping sprints for {project_key}, no board available")
@@ -1048,6 +1066,8 @@ class JiraSeeder:
         self.flush_batches()
         self.assign_all_sprints()
         self.finalize_sprints()
+
+        self.manifest["sprints"] = self.sprints_by_project
 
         manifest_path = self.args.manifest
         with open(manifest_path, "w") as handle:

@@ -29,3 +29,4 @@ atlassian/demo.plan
 atlassian/tf.log
 *.json
 .terraform.tfstate.lock.**
+.env
