@@ -199,12 +199,12 @@ class JiraSeeder:
         with open(args.story, "r") as handle:
             self.story = yaml.safe_load(handle)
 
+        self.start_date, self.end_date, self.month_count = self.resolve_date_range()
         seed_input = f"{self.story.get('org_slug', 'org')}::{args.seed}"
         seed_hash = int(hashlib.sha256(seed_input.encode("utf-8")).hexdigest(), 16)
         self.rng = random.Random(seed_hash)
 
         self.client = JiraClient(args.url, args.user, args.token, dry_run=args.dry_run)
-        self.start_date = datetime.datetime.utcnow() - datetime.timedelta(days=730)
         self.issue_types = set(self.client.get_issue_types())
 
         self.existing_ids = defaultdict(set)
@@ -214,7 +214,7 @@ class JiraSeeder:
             "meta": {
                 "generated_at": datetime.datetime.utcnow().isoformat() + "Z",
                 "seed": args.seed,
-                "months": 24,
+                "months": self.month_count,
             },
             "counts": {
                 "by_project": defaultdict(lambda: defaultdict(int)),
@@ -234,6 +234,7 @@ class JiraSeeder:
         self.issue_key_by_external_id = {}
         self.issues_by_project_month = defaultdict(lambda: defaultdict(list))
         self.followup_specs = []
+        self.sprints_by_project = {}
         self.team_primary_project = {
             t["id"]: t["primary_project"] for t in self.story.get("teams", [])
         }
@@ -242,6 +243,36 @@ class JiraSeeder:
             shared_project = team.get("shared_project")
             if shared_project:
                 self.shared_team_by_project[shared_project].append(team["id"])
+
+    def resolve_date_range(self):
+        if self.args.start_date:
+            start = self.parse_iso_date(self.args.start_date, "start-date")
+            if self.args.end_date:
+                end = self.parse_iso_date(self.args.end_date, "end-date")
+            else:
+                end = datetime.datetime.utcnow()
+            if end <= start:
+                raise ValueError("--end-date must be later than --start-date.")
+            total_days = (end - start).days
+            month_count = max(1, int(round(total_days / 30.0)))
+            return start, end, month_count
+
+        if self.args.end_date:
+            raise ValueError("--start-date is required when --end-date is provided.")
+
+        end = datetime.datetime.utcnow()
+        start = end - datetime.timedelta(days=730)
+        return start, end, 24
+
+    def parse_iso_date(self, value, label):
+        cleaned = value.rstrip("Z")
+        try:
+            dt = datetime.datetime.fromisoformat(cleaned)
+        except ValueError as exc:
+            raise ValueError(f"--{label} must be ISO-8601 (e.g. 2023-01-31).") from exc
+        if dt.tzinfo:
+            dt = dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        return dt
 
     def log(self, msg):
         self.client.log(msg)
@@ -489,7 +520,10 @@ class JiraSeeder:
     def generate_month_issues(self, project, month_idx, arc):
         project_key = project["key"]
         default_team_id = project["team_id"]
-        base_count = clamp_int(self.rng.gauss(arc["monthly_volume_mean"], arc["monthly_volume_std"]), 20)
+        if self.args.monthly_issue_count is not None:
+            base_count = clamp_int(self.args.monthly_issue_count, 1)
+        else:
+            base_count = clamp_int(self.rng.gauss(arc["monthly_volume_mean"], arc["monthly_volume_std"]), 20)
         incident_count = int(base_count * arc.get("incident_rate", 0)) if self.args.enable_incidents else 0
         work_count = base_count - incident_count
 
@@ -720,9 +754,21 @@ class JiraSeeder:
                 self.created_issues.append(payload)
                 self.existing_ids[project_key].add(label)
 
+    def build_sprint_map(self):
+        sprint_map = []
+        sprint_count = self.month_count * 2
+        for idx in range(sprint_count):
+            start_dt = self.start_date + datetime.timedelta(days=idx * 14)
+            end_dt = start_dt + datetime.timedelta(days=13)
+            sprint_map.append((start_dt, end_dt))
+        return sprint_map
+
     def build_sprints(self, project_key, sprint_map):
         if not self.args.enable_sprints:
             return {}
+        cached = self.sprints_by_project.get(project_key)
+        if cached is not None:
+            return cached
         boards = self.client.get_boards(project_key) or {}
         board_id = None
         for board in boards.get("values", []) or []:
@@ -734,6 +780,7 @@ class JiraSeeder:
             board_id = created.get("id")
         if not board_id:
             self.log(f"Skipping sprints for {project_key}, no board available")
+            self.sprints_by_project[project_key] = {}
             return {}
 
         sprints = {}
@@ -747,7 +794,15 @@ class JiraSeeder:
             )
             if sprint and sprint.get("id"):
                 sprints[name] = sprint.get("id")
+        self.sprints_by_project[project_key] = sprints
         return sprints
+
+    def precreate_sprints(self):
+        if not self.args.enable_sprints:
+            return
+        sprint_map = self.build_sprint_map()
+        for project in self.story["projects"]:
+            self.build_sprints(project["key"], sprint_map)
 
     def assign_sprints(self, project_key, sprint_map, issue_keys_by_month):
         if not self.args.enable_sprints:
@@ -777,12 +832,7 @@ class JiraSeeder:
     def assign_all_sprints(self):
         if not self.args.enable_sprints:
             return
-        sprint_map = []
-        sprint_count = 48
-        for idx in range(sprint_count):
-            start_dt = self.start_date + datetime.timedelta(days=idx * 14)
-            end_dt = start_dt + datetime.timedelta(days=13)
-            sprint_map.append((start_dt, end_dt))
+        sprint_map = self.build_sprint_map()
         for project in self.story["projects"]:
             project_key = project["key"]
             month_map = self.issues_by_project_month.get(project_key, {})
@@ -799,13 +849,15 @@ class JiraSeeder:
         if incident_project and incident_project not in project_keys:
             self.prefetch_existing(incident_project)
 
+        self.precreate_sprints()
+
         for project in self.story["projects"]:
             self.ensure_epics_and_initiatives(project["key"], project["team_id"])
 
         self.link_epics_cross_project(project_keys)
 
         arcs = self.story["arcs"]
-        for month_idx in range(24):
+        for month_idx in range(self.month_count):
             arc = next(
                 (a for a in arcs if a["start_month"] <= month_idx <= a["end_month"]),
                 None,
@@ -846,6 +898,9 @@ def parse_args():
     parser.add_argument("--seed", required=True)
     parser.add_argument("--assignees", default="")
     parser.add_argument("--batch-size", type=int, default=50)
+    parser.add_argument("--start-date", default=None)
+    parser.add_argument("--end-date", default=None)
+    parser.add_argument("--monthly-issue-count", type=int, default=None)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--disable-sprints", action="store_true")
     parser.add_argument("--disable-transitions", action="store_true")

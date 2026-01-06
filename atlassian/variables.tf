@@ -110,6 +110,29 @@ variable "batch_size" {
   default     = 50
 }
 
+variable "provision_start_date" {
+  type        = string
+  description = "Override the provisioned data start date (ISO-8601, e.g. 2023-01-31)"
+  default     = ""
+}
+
+variable "provision_end_date" {
+  type        = string
+  description = "Override the provisioned data end date (ISO-8601, e.g. 2024-12-31). Defaults to today if unset."
+  default     = ""
+}
+
+variable "monthly_issue_count" {
+  type        = number
+  description = "Override the total issues created per month (0 = use story map defaults)"
+  default     = 0
+
+  validation {
+    condition     = var.monthly_issue_count >= 0
+    error_message = "monthly_issue_count must be 0 or a positive number."
+  }
+}
+
 variable "assignee_emails" {
   type        = list(string)
   description = "List of emails to resolve for assignees"
