@@ -136,10 +136,74 @@ class JiraClient:
             "GET", "/rest/agile/1.0/board", params={"projectKeyOrId": project_key}
         )
 
-    def get_sprints(self, board_id):
-        return self.api_request(
-            "GET", f"/rest/agile/1.0/board/{board_id}/sprint"
-        )
+    def get_sprints(self, board_id, max_results=50):
+        """
+        Fetch all sprints for a board, handling Jira Agile pagination.
+
+        Returns a response shaped like the Jira API response, but with the
+        ``values`` list aggregated across all pages. On error, this will
+        fall back to returning the first page response (which may be ``None``
+        or an empty dict), matching the previous behavior as closely as
+        possible.
+        """
+        all_sprints = []
+        start_at = 0
+        first_page = None
+
+        while True:
+            params = {"startAt": start_at, "maxResults": max_results}
+            page = self.api_request(
+                "GET",
+                f"/rest/agile/1.0/board/{board_id}/sprint",
+                params=params,
+            )
+
+            # If the first request fails or returns an unexpected structure,
+            # preserve the original behavior by returning it directly.
+            if first_page is None:
+                if not page or not isinstance(page, dict) or "values" not in page:
+                    if page is None:
+                        self.log(
+                            f"Failed to fetch sprints for board {board_id}: API returned None"
+                        )
+                    else:
+                        self.log(
+                            f"Unexpected sprint response for board {board_id}: {type(page)}"
+                        )
+                    return page
+                first_page = page
+            else:
+                # For subsequent pages, stop if the structure is not as expected.
+                if not page or not isinstance(page, dict) or "values" not in page:
+                    self.log(
+                        f"Stopping sprint pagination for board {board_id} due to unexpected page structure"
+                    )
+                    break
+
+            values = page.get("values", []) or []
+            all_sprints.extend(values)
+
+            # Determine whether there are more pages.
+            if page.get("isLast", True):
+                break
+
+            current_start = page.get("startAt", start_at)
+            current_max = page.get("maxResults", len(values))
+            # Avoid infinite loops if the API returns inconsistent pagination data.
+            if current_max <= 0:
+                break
+            start_at = current_start + current_max
+
+        # If we never obtained a valid first_page, just return whatever we have.
+        if first_page is None:
+            return None
+
+        # Normalize the first page to contain all sprints and updated pagination info.
+        first_page["values"] = all_sprints
+        first_page["startAt"] = 0
+        first_page["maxResults"] = len(all_sprints)
+        first_page["isLast"] = True
+        return first_page
 
     def create_sprint(self, name, board_id, start_date, end_date):
         payload = {
@@ -151,7 +215,27 @@ class JiraClient:
         return self.api_request("POST", "/rest/agile/1.0/sprint", payload)
 
     def update_sprint(self, sprint_id, **kwargs):
-        return self.api_request("PUT", f"/rest/agile/1.0/sprint/{sprint_id}", kwargs)
+        """
+        Update a sprint using the Jira Agile API.
+
+        Supported keyword arguments (per Jira Cloud REST API):
+        - name: str
+        - state: str
+        - startDate: str (ISO-8601 datetime)
+        - endDate: str (ISO-8601 datetime)
+        - goal: str
+        """
+        allowed_fields = {"name", "state", "startDate", "endDate", "goal"}
+        payload = {k: v for k, v in kwargs.items() if k in allowed_fields}
+
+        invalid_keys = set(kwargs.keys()) - allowed_fields
+        if invalid_keys:
+            self.log(
+                f"Ignoring unsupported sprint update fields for sprint {sprint_id}: "
+                f"{', '.join(sorted(invalid_keys))}"
+            )
+
+        return self.api_request("PUT", f"/rest/agile/1.0/sprint/{sprint_id}", payload)
 
     def add_issues_to_sprint(self, sprint_id, issue_keys):
         payload = {"issues": issue_keys}
@@ -813,13 +897,48 @@ class JiraSeeder:
         found = self.client.get_sprints(board_id)
         if found:
             for s in found.get("values", []):
-                existing_sprints[s.get("name")] = s.get("id")
+                name = s.get("name")
+                sprint_id = s.get("id")
+                if not name or not sprint_id:
+                    continue
+                existing_sprints[name] = s
 
         sprints = {}
         for idx, (start_dt, end_dt) in enumerate(sprint_map):
             name = f"Sprint {idx + 1}"
-            if name in existing_sprints:
-                sprints[name] = existing_sprints[name]
+            existing = existing_sprints.get(name)
+            if existing:
+                existing_start = existing.get("startDate")
+                existing_end = existing.get("endDate")
+
+                def _parse_jira_datetime(value):
+                    if not value:
+                        return None
+                    # Jira typically returns ISO-8601 strings, sometimes with a trailing 'Z'
+                    text = value
+                    if text.endswith("Z"):
+                        text = text[:-1] + "+00:00"
+                    try:
+                        dt = datetime.datetime.fromisoformat(text)
+                    except ValueError:
+                        return None
+                    # Normalize to naive UTC to match sprint_map datetimes
+                    if dt.tzinfo is not None:
+                        dt = dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+                    return dt
+
+                parsed_start = _parse_jira_datetime(existing_start)
+                parsed_end = _parse_jira_datetime(existing_end)
+
+                # If dates are missing or differ from the expected ones, update the sprint
+                if parsed_start != start_dt or parsed_end != end_dt:
+                    self.client.update_sprint(
+                        existing.get("id"),
+                        startDate=start_dt.isoformat() + "Z",
+                        endDate=end_dt.isoformat() + "Z",
+                    )
+
+                sprints[name] = existing.get("id")
                 continue
 
             sprint = self.client.create_sprint(
@@ -889,9 +1008,9 @@ class JiraSeeder:
                 if not sprint_id:
                     continue
 
-                if end_dt < now:
+                if end_dt <= now:
                     self.client.update_sprint(sprint_id, state="closed")
-                elif start_dt <= now <= end_dt:
+                elif start_dt <= now < end_dt:
                     self.client.update_sprint(sprint_id, state="active")
 
     def run(self):
