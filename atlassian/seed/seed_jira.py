@@ -136,15 +136,22 @@ class JiraClient:
             "GET", "/rest/agile/1.0/board", params={"projectKeyOrId": project_key}
         )
 
+    def get_sprints(self, board_id):
+        return self.api_request(
+            "GET", f"/rest/agile/1.0/board/{board_id}/sprint"
+        )
+
     def create_sprint(self, name, board_id, start_date, end_date):
         payload = {
             "name": name,
             "originBoardId": board_id,
             "startDate": start_date,
             "endDate": end_date,
-            "state": "closed",
         }
         return self.api_request("POST", "/rest/agile/1.0/sprint", payload)
+
+    def update_sprint(self, sprint_id, **kwargs):
+        return self.api_request("PUT", f"/rest/agile/1.0/sprint/{sprint_id}", kwargs)
 
     def add_issues_to_sprint(self, sprint_id, issue_keys):
         payload = {"issues": issue_keys}
@@ -802,9 +809,19 @@ class JiraSeeder:
             self.sprints_by_project[project_key] = {}
             return {}
 
+        existing_sprints = {}
+        found = self.client.get_sprints(board_id)
+        if found:
+            for s in found.get("values", []):
+                existing_sprints[s.get("name")] = s.get("id")
+
         sprints = {}
         for idx, (start_dt, end_dt) in enumerate(sprint_map):
             name = f"Sprint {idx + 1}"
+            if name in existing_sprints:
+                sprints[name] = existing_sprints[name]
+                continue
+
             sprint = self.client.create_sprint(
                 name,
                 board_id,
@@ -858,6 +875,25 @@ class JiraSeeder:
             if month_map:
                 self.assign_sprints(project_key, sprint_map, month_map)
 
+    def finalize_sprints(self):
+        if not self.args.enable_sprints:
+            return
+
+        sprint_map = self.build_sprint_map()
+        now = utcnow_naive()
+
+        for project_key, sprints in self.sprints_by_project.items():
+            for idx, (start_dt, end_dt) in enumerate(sprint_map):
+                name = f"Sprint {idx + 1}"
+                sprint_id = sprints.get(name)
+                if not sprint_id:
+                    continue
+
+                if end_dt < now:
+                    self.client.update_sprint(sprint_id, state="closed")
+                elif start_dt <= now <= end_dt:
+                    self.client.update_sprint(sprint_id, state="active")
+
     def run(self):
         self.resolve_assignees()
 
@@ -890,6 +926,7 @@ class JiraSeeder:
         self.generate_followups()
         self.flush_batches()
         self.assign_all_sprints()
+        self.finalize_sprints()
 
         manifest_path = self.args.manifest
         with open(manifest_path, "w") as handle:
