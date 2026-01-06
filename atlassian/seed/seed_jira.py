@@ -171,6 +171,11 @@ def stable_hash(value, length=12):
     return digest[:length]
 
 
+def utcnow_naive():
+    """Return current UTC time as a naive datetime (for internal calculations)."""
+    return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+
 def month_key(dt):
     return dt.strftime("%Y-%m")
 
@@ -255,7 +260,7 @@ class JiraSeeder:
             if self.args.end_date:
                 end = self.parse_iso_date(self.args.end_date, "end-date")
             else:
-                end = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+                end = utcnow_naive()
             if end < start:
                 raise ValueError(
                     "--end-date must be later than or equal to --start-date "
@@ -271,7 +276,7 @@ class JiraSeeder:
                 "(Terraform: provision_start_date is required when provision_end_date is set)."
             )
 
-        end = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+        end = utcnow_naive()
         start = end - datetime.timedelta(days=730)
         return start, end, 24
 
