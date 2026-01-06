@@ -1008,7 +1008,7 @@ class JiraSeeder:
                 if not sprint_id:
                     continue
                     
-                # Only update sprints that have started
+                # Only update sprints that have started; future sprints remain in their initial state
                 if start_dt <= now:
                     state = "active"
                     if end_dt <= now:
