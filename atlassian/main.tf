@@ -31,6 +31,10 @@ locals {
   transitions_flag  = var.enable_transitions ? "" : "--disable-transitions"
   comments_flag     = var.enable_comments ? "--enable-comments" : ""
   incidents_flag    = var.disable_incidents ? "--disable-incidents" : ""
+  start_date_flag   = var.provision_start_date != "" ? "--start-date ${var.provision_start_date}" : ""
+  end_date_flag     = var.provision_end_date != "" ? "--end-date ${var.provision_end_date}" : ""
+  monthly_issue_flag = var.monthly_issue_count != 0 ? "--monthly-issue-count ${var.monthly_issue_count}" : ""
+  date_range_valid  = var.provision_end_date == "" || var.provision_start_date != ""
 
   project_lead_id = var.project_lead_account_id != "" ? var.project_lead_account_id : data.atlassian-operations_user.admin.account_id
   team_member_ids = length(var.team_member_account_ids) > 0 ? var.team_member_account_ids : (var.enable_user_creation ? jira_user.generated[*].id : [])
@@ -58,12 +62,22 @@ module "ops_structure" {
 resource "null_resource" "seed" {
   depends_on = [module.jira_structure, module.ops_structure]
 
+  lifecycle {
+    precondition {
+      condition     = local.date_range_valid
+      error_message = "provision_start_date is required when provision_end_date is set."
+    }
+  }
+
   triggers = {
     story_map_hash = filesha256("${path.module}/seed/story_map.yaml")
     script_hash    = filesha256("${path.module}/seed/seed_jira.py")
     seed_hash      = sha256(var.seed_string)
     batch_size     = var.batch_size
     dry_run        = tostring(var.enable_issue_creation)
+    start_date     = var.provision_start_date
+    end_date       = var.provision_end_date
+    monthly_issues = var.monthly_issue_count
   }
 
   provisioner "local-exec" {
@@ -81,6 +95,9 @@ resource "null_resource" "seed" {
       "--manifest", "${path.module}/out/manifest.json",
       "--seed", var.seed_string,
       "--batch-size", tostring(var.batch_size),
+      local.start_date_flag,
+      local.end_date_flag,
+      local.monthly_issue_flag,
       local.assignee_flag,
       local.dry_run_flag,
       local.sprints_flag,
