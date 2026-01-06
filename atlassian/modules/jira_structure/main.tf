@@ -14,4 +14,9 @@ resource "jira_project" "projects" {
   project_type_key     = "software"
   project_template_key = var.project_template_key
   lead_account_id      = var.project_lead_account_id
+  
+  // This is required to force the provider to delete the project immediately
+  // instead of moving it to the trash (which requires manual intervention to clear).
+  // Note: This feature is specific to the fourplusone/jira provider.
+  delete_permanently = true
 }

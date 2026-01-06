@@ -1007,11 +1007,13 @@ class JiraSeeder:
                 sprint_id = sprints.get(name)
                 if not sprint_id:
                     continue
-
-                if end_dt <= now:
-                    self.client.update_sprint(sprint_id, state="closed")
-                elif start_dt <= now < end_dt:
-                    self.client.update_sprint(sprint_id, state="active")
+                    
+                # Only update sprints that have started; future sprints remain in their initial state
+                if start_dt <= now:
+                    state = "active"
+                    if end_dt <= now:
+                        state = "closed"
+                    self.client.update_sprint(sprint_id, state=state)
 
     def run(self):
         self.resolve_assignees()
