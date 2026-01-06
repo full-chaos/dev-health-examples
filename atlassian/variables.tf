@@ -124,12 +124,12 @@ variable "provision_end_date" {
 
 variable "monthly_issue_count" {
   type        = number
-  description = "Override the total issues created per month (0 = use story map defaults)"
+  description = "Override the total issues created per month (0 = use story map defaults, max 10000)"
   default     = 0
 
   validation {
-    condition     = var.monthly_issue_count >= 0
-    error_message = "monthly_issue_count must be 0 or a positive number."
+    condition     = var.monthly_issue_count >= 0 && var.monthly_issue_count <= 10000
+    error_message = "monthly_issue_count must be between 0 and 10000."
   }
 }
 
