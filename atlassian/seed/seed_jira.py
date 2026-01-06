@@ -906,12 +906,12 @@ def parse_args():
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--seed", required=True)
     parser.add_argument("--assignees", default="")
-    parser.add_argument("--batch_size", "--batch-size", dest="batch_size", type=int, default=50)
-    parser.add_argument("--start_date", "--start-date", dest="start_date", default=None)
-    parser.add_argument("--end_date", "--end-date", dest="end_date", default=None)
+    parser.add_argument("--batch-size", "--batch_size", dest="batch_size", type=int, default=50)
+    parser.add_argument("--start-date", "--start_date", dest="start_date", default=None)
+    parser.add_argument("--end-date", "--end_date", dest="end_date", default=None)
     parser.add_argument(
-        "--monthly_issue_count",
         "--monthly-issue-count",
+        "--monthly_issue_count",
         dest="monthly_issue_count",
         type=int,
         default=None,
