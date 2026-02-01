@@ -35,6 +35,10 @@ This repository (`dev-health-examples`) contains automation tools to seed realis
 *   **Data Shape:** The data is not random; it follows specific phases defined in `story_map.yaml` to simulate real-world team challenges (e.g., a spike in bugs during a "Reliability Crunch").
 
 ## Important Notes for Agents
+*   **NEVER commit directly to main** — Always create a feature branch first:
+    ```bash
+    git checkout -b <type>/<descriptive-name>  # e.g., fix/seed-script, feat/new-arc
+    ```
 *   **Mock Mode:** The Python script has a `MOCK_MODE` variable. If you see it skipping API calls, check the provided URL.
 *   **Destruction:** `terraform destroy` removes the structure (Projects/Teams) but the Python script does NOT clean up the individual issues it created inside those projects (projects must be deleted).
 
