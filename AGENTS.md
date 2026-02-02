@@ -39,6 +39,11 @@ This repository (`dev-health-examples`) contains automation tools to seed realis
     ```bash
     git checkout -b <type>/<descriptive-name>  # e.g., fix/seed-script, feat/new-arc
     ```
+*   **Use git worktrees for parallel work** — When starting a new feature or unrelated task, use a worktree:
+    ```bash
+    git worktree add ../dev-health-examples-feature-name feature/branch-name
+    ```
+    This keeps each task isolated, preventing cross-contamination of changes.
 *   **Mock Mode:** The Python script has a `MOCK_MODE` variable. If you see it skipping API calls, check the provided URL.
 *   **Destruction:** `terraform destroy` removes the structure (Projects/Teams) but the Python script does NOT clean up the individual issues it created inside those projects (projects must be deleted).
 
