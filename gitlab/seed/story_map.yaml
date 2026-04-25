@@ -1,0 +1,250 @@
+---
+seed_version: 1
+org_slug: dev-health-demo
+
+teams:
+  - id: Team-01
+    domain: Core
+    primary_project: core
+    shared_project: platform
+  - id: Team-02
+    domain: Platform
+    primary_project: platform
+    shared_project: core
+  - id: Team-03
+    domain: Data
+    primary_project: data
+    shared_project: integrations
+  - id: Team-04
+    domain: Infra
+    primary_project: infra
+    shared_project: reliability
+  - id: Team-05
+    domain: Security
+    primary_project: security
+    shared_project: infra
+  - id: Team-06
+    domain: Mobile
+    primary_project: mobile
+    shared_project: web
+  - id: Team-07
+    domain: Web
+    primary_project: web
+    shared_project: mobile
+  - id: Team-08
+    domain: Integrations
+    primary_project: integrations
+    shared_project: data
+  - id: Team-09
+    domain: Payments
+    primary_project: payments
+    shared_project: core
+  - id: Team-10
+    domain: Reliability
+    primary_project: reliability
+    shared_project: infra
+
+projects:
+  - path: core
+    name: Core
+    team_id: Team-01
+  - path: platform
+    name: Platform
+    team_id: Team-02
+  - path: data
+    name: Data
+    team_id: Team-03
+  - path: infra
+    name: Infra
+    team_id: Team-04
+  - path: security
+    name: Security
+    team_id: Team-05
+  - path: mobile
+    name: Mobile
+    team_id: Team-06
+  - path: web
+    name: Web
+    team_id: Team-07
+  - path: integrations
+    name: Integrations
+    team_id: Team-08
+  - path: payments
+    name: Payments
+    team_id: Team-09
+  - path: reliability
+    name: Reliability
+    team_id: Team-10
+
+services:
+  - api-gateway
+  - auth-service
+  - billing-worker
+  - data-ingest
+  - edge-proxy
+  - mobile-api
+  - notification-bus
+  - reporting-api
+  - risk-engine
+  - web-app
+
+canonical_themes:
+  - Feature Delivery
+  - Operational / Support
+  - Maintenance / Tech Debt
+  - Quality / Reliability
+  - Risk / Security
+
+story_arcs:
+  - Launch
+  - Scale
+  - Reliability Crunch
+  - Recovery
+  - Roadmap Reset
+
+arcs:
+  - name: Launch
+    start_month: 0
+    end_month: 5
+    monthly_issue_mean: 10
+    monthly_issue_std: 3
+    mr_ratio: 0.55
+    release_interval_months: 2
+    issue_type_mix:
+      feature: 0.55
+      bug: 0.16
+      chore: 0.14
+      incident: 0.05
+      vulnerability: 0.10
+    investment_theme_mix:
+      Feature Delivery: 0.58
+      Operational / Support: 0.10
+      Maintenance / Tech Debt: 0.12
+      Quality / Reliability: 0.12
+      Risk / Security: 0.08
+    pipeline_success_rate: 0.86
+    pipeline_failure_stage_mix:
+      build: 0.20
+      test: 0.44
+      security: 0.10
+      deploy: 0.26
+    review_profile:
+      reviewer_count_mean: 1.2
+      comment_rate: 0.22
+      merge_rate: 0.82
+  - name: Scale
+    start_month: 6
+    end_month: 11
+    monthly_issue_mean: 12
+    monthly_issue_std: 4
+    mr_ratio: 0.62
+    release_interval_months: 2
+    issue_type_mix:
+      feature: 0.42
+      bug: 0.18
+      chore: 0.22
+      incident: 0.07
+      vulnerability: 0.11
+    investment_theme_mix:
+      Feature Delivery: 0.42
+      Operational / Support: 0.14
+      Maintenance / Tech Debt: 0.22
+      Quality / Reliability: 0.14
+      Risk / Security: 0.08
+    pipeline_success_rate: 0.76
+    pipeline_failure_stage_mix:
+      build: 0.18
+      test: 0.48
+      security: 0.12
+      deploy: 0.22
+    review_profile:
+      reviewer_count_mean: 1.7
+      comment_rate: 0.30
+      merge_rate: 0.74
+  - name: Reliability Crunch
+    start_month: 12
+    end_month: 15
+    monthly_issue_mean: 15
+    monthly_issue_std: 5
+    mr_ratio: 0.68
+    release_interval_months: 1
+    issue_type_mix:
+      feature: 0.24
+      bug: 0.28
+      chore: 0.17
+      incident: 0.18
+      vulnerability: 0.13
+    investment_theme_mix:
+      Feature Delivery: 0.22
+      Operational / Support: 0.20
+      Maintenance / Tech Debt: 0.18
+      Quality / Reliability: 0.30
+      Risk / Security: 0.10
+    pipeline_success_rate: 0.58
+    pipeline_failure_stage_mix:
+      build: 0.14
+      test: 0.36
+      security: 0.18
+      deploy: 0.32
+    review_profile:
+      reviewer_count_mean: 2.4
+      comment_rate: 0.48
+      merge_rate: 0.62
+  - name: Recovery
+    start_month: 16
+    end_month: 19
+    monthly_issue_mean: 11
+    monthly_issue_std: 3
+    mr_ratio: 0.64
+    release_interval_months: 1
+    issue_type_mix:
+      feature: 0.28
+      bug: 0.18
+      chore: 0.28
+      incident: 0.08
+      vulnerability: 0.18
+    investment_theme_mix:
+      Feature Delivery: 0.28
+      Operational / Support: 0.12
+      Maintenance / Tech Debt: 0.25
+      Quality / Reliability: 0.23
+      Risk / Security: 0.12
+    pipeline_success_rate: 0.78
+    pipeline_failure_stage_mix:
+      build: 0.18
+      test: 0.42
+      security: 0.20
+      deploy: 0.20
+    review_profile:
+      reviewer_count_mean: 1.8
+      comment_rate: 0.34
+      merge_rate: 0.78
+  - name: Roadmap Reset
+    start_month: 20
+    end_month: 23
+    monthly_issue_mean: 10
+    monthly_issue_std: 2
+    mr_ratio: 0.58
+    release_interval_months: 2
+    issue_type_mix:
+      feature: 0.48
+      bug: 0.16
+      chore: 0.18
+      incident: 0.05
+      vulnerability: 0.13
+    investment_theme_mix:
+      Feature Delivery: 0.46
+      Operational / Support: 0.10
+      Maintenance / Tech Debt: 0.18
+      Quality / Reliability: 0.16
+      Risk / Security: 0.10
+    pipeline_success_rate: 0.84
+    pipeline_failure_stage_mix:
+      build: 0.20
+      test: 0.40
+      security: 0.18
+      deploy: 0.22
+    review_profile:
+      reviewer_count_mean: 1.5
+      comment_rate: 0.26
+      merge_rate: 0.80
